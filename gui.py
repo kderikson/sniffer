@@ -11,6 +11,7 @@ import sys
 import wx
 import time
 import thread
+
 # begin wxGlade: dependencies
 import gettext
 # end wxGlade
@@ -257,6 +258,44 @@ class MyFrame(wx.Frame):
 
     def Print(self, event):
         print "Printing"
+        f = open('sniffer.txt', 'w')
+        num = self.list_ctrl_1.GetFirstSelected() # Gets selected line
+        # Print Everything to file
+        p = self.list_ctrl_1.GetItem(num,0)
+        f.write('Protocol: ')
+        f.write(p.GetText())
+        v = self.list_ctrl_1.GetItem(num,1)
+        f.write('\nVersion: ')
+        f.write(v.GetText())
+        ip = self.list_ctrl_1.GetItem(num,2)
+        f.write('\nIP Header Length: ')
+        f.write(ip.GetText())
+        ttl = self.list_ctrl_1.GetItem(num,3)
+        f.write('\nTTL: ')
+        f.write(ttl.GetText())
+        sa = self.list_ctrl_1.GetItem(num,4)
+        f.write('\nSource Address: ')
+        f.write(sa.GetText())
+        da = self.list_ctrl_1.GetItem(num,5)
+        f.write('\nDestination Address: ')
+        f.write(da.GetText())
+        sn = self.list_ctrl_1.GetItem(num,6)
+        f.write('\nSequence Number: ')
+        f.write(sn.GetText())
+        ack = self.list_ctrl_1.GetItem(num,7)
+        f.write('\nAcknowledge: ')
+        f.write(ack.GetText())
+        tcp = self.list_ctrl_1.GetItem(num,8)
+        f.write('\nTCP Header Length: ')
+        f.write(tcp.GetText())
+        sp = self.list_ctrl_1.GetItem(num,11)
+        f.write('\nSource Port: ')
+        f.write(sp.GetText())
+        dp = self.list_ctrl_1.GetItem(num,12)
+        f.write('\nDestination Port: ')
+        f.write(dp.GetText())
+        f.close()
+
 
     def Exit(self, event):
         app.Exit()
