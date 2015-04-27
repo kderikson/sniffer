@@ -1,3 +1,6 @@
+
+
+
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
 #
@@ -18,6 +21,7 @@ import gettext
 # begin wxGlade: extracode
 # end wxGlade
 
+from threading import Thread
 
 class MyFrame(wx.Frame):
     loop = True
@@ -91,17 +95,21 @@ class MyFrame(wx.Frame):
         print "Hello there."
         cap = pcapy.open_live("eth0" , 65536 , 1 , 100000)
 
-        thread.start_new_thread(self.get_data, (cap, ))
+        # thread.start_new_thread(self.get_data, (cap, ))
+        Thread(target=self.get_data(cap)).start()
 
 
     def get_data(self, cap):
-        while (self.count < 70):
-            (header, packet) = cap.next()
-            #print ('%s: captured %d bytes, truncated to %d bytes' %(datetime.datetime.now(), header.getlen(), header.getcaplen()))
-            self.parse_info(packet)
-            self.count += 1
-        print "done"
-
+    	while (self.loop):
+	    	print "starting get data"
+	        (header, packet) = cap.next()
+	            #print ('%s: captured %d bytes, truncated to %d bytes' %(datetime.datetime.now(), header.getlen(), header.getcaplen()))
+	        packetData = self.parse_info(packet)
+	        print "printing packet"
+	        print packetData
+	        wx.CallAfter(self.displayData(packetData))
+	        print "after callback"
+        
     def parse_info(self, packet):
             #parse ethernet header
         eth_length = 14
@@ -152,7 +160,8 @@ class MyFrame(wx.Frame):
 
                 packetData = (str(protocol), str(version), str(ihl), str(ttl), str(s_addr), str(d_addr), str(sequence), str(acknowledgement), str(tcph_length), '', '', str(source_port), str(dest_port), '', '')
 
-                self.displayData(packetData)
+                # self.displayData(packetData)
+                return packetData
 
                 # thread.start_new_thread(self.displayData, (packetData, ))
                 # self.displayData(packetData)
@@ -182,7 +191,8 @@ class MyFrame(wx.Frame):
 
                 packetData = (str(protocol), str(version), str(ihl), str(ttl), str(s_addr), str(d_addr), '', '', '', str(icmp_type), str(code), '', '', '', str(checksum))
 
-                self.displayData(packetData)
+                # self.displayData(packetData)
+                return packetData
                  
                 # h_size = eth_length + iph_length + icmph_length
                 # data_size = len(packet) - h_size
@@ -210,7 +220,8 @@ class MyFrame(wx.Frame):
 
                 packetData = (str(protocol), str(version), str(ihl), str(ttl), str(s_addr), str(d_addr), '', '', '', '', '', str(source_port), str(dest_port), str(length), str(checksum))
 
-                self.displayData(packetData)
+                # self.displayData(packetData)
+                return packetData
                  
                 # h_size = eth_length + iph_length + udph_length
                 # data_size = len(packet) - h_size
@@ -231,7 +242,8 @@ class MyFrame(wx.Frame):
         return b
 
     def displayData(self, data):
-        wx.Yield()
+    	print "Display data"
+    	print data[0]
         index = self.list_ctrl_1.InsertStringItem(self.index, data[0])
         self.list_ctrl_1.SetStringItem(index, 1, data[1])
         self.list_ctrl_1.SetStringItem(index, 2, data[2])
@@ -248,6 +260,7 @@ class MyFrame(wx.Frame):
         self.list_ctrl_1.SetStringItem(index, 13, data[13])
         self.list_ctrl_1.SetStringItem(index, 14, data[14])
         self.index += 1
+        print "done displaying"
 
     def Stop(self, event):
         print "Stopping"
