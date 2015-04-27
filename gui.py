@@ -21,6 +21,8 @@ import gettext
 
 class MyFrame(wx.Frame):
     loop = True;
+    index = 0;
+    count = 0;
 
     def __init__(self, *args, **kwds):
         # begin wxGlade: MyFrame.__init__
@@ -28,18 +30,23 @@ class MyFrame(wx.Frame):
         wx.Frame.__init__(self, *args, **kwds)
         
         self.list_ctrl_1 = wx.ListCtrl(self, wx.ID_ANY, style=wx.LC_REPORT | wx.LC_HRULES | wx.SUNKEN_BORDER)
-        self.list_ctrl_1.InsertColumn(0,'Dest. MAC', width=100)
-        self.list_ctrl_1.InsertColumn(1,'Source. MAC', width=100)
-        self.list_ctrl_1.InsertColumn(2,'Protocol', width=100)
-        self.list_ctrl_1.InsertColumn(3,'Version', width=100)
-        self.list_ctrl_1.InsertColumn(4,'IP Header Length', width=150)
-        self.list_ctrl_1.InsertColumn(5,'TTL', width=100)
-        self.list_ctrl_1.InsertColumn(6,'Source Address', width=100)
-        self.list_ctrl_1.InsertColumn(7,'Dest. Address', width=100)
-        self.list_ctrl_1.InsertColumn(8,'Source Port', width=100)
-        self.list_ctrl_1.InsertColumn(9,'Dest. Port', width=100)
-        self.list_ctrl_1.InsertColumn(10,'Length', width=100)
-        self.list_ctrl_1.InsertColumn(11,'Checksum', width=100)
+        # self.list_ctrl_1.InsertColumn(0,'Dest. MAC', width=100)
+        # self.list_ctrl_1.InsertColumn(1,'Source. MAC', width=100)
+        self.list_ctrl_1.InsertColumn(0,'Protocol', width=100)
+        self.list_ctrl_1.InsertColumn(1,'Version', width=100)
+        self.list_ctrl_1.InsertColumn(2,'IP Header Length', width=150)
+        self.list_ctrl_1.InsertColumn(3,'TTL', width=100)
+        self.list_ctrl_1.InsertColumn(4,'Source Address', width=100)
+        self.list_ctrl_1.InsertColumn(5,'Dest. Address', width=100)
+        self.list_ctrl_1.InsertColumn(6,'Seq. Num.', width=100)
+        self.list_ctrl_1.InsertColumn(7,'Acknowledgement', width=100)
+        self.list_ctrl_1.InsertColumn(8,'TCP Header Len.', width=100)
+        self.list_ctrl_1.InsertColumn(9,'Type', width=100)
+        self.list_ctrl_1.InsertColumn(10,'Code', width=100)    
+        self.list_ctrl_1.InsertColumn(11,'Source Port', width=100)
+        self.list_ctrl_1.InsertColumn(12,'Dest. Port', width=100)
+        self.list_ctrl_1.InsertColumn(13,'Length', width=100)
+        self.list_ctrl_1.InsertColumn(14,'Checksum', width=100)
 
         
         self.btnStart = wx.Button(self, wx.ID_ANY, _("Start"))
@@ -52,9 +59,6 @@ class MyFrame(wx.Frame):
         self.Bind(wx.EVT_BUTTON, self.Print, self.btnPrint)
         self.Bind(wx.EVT_BUTTON, self.Exit, self.btnExit)
 
-        index = self.list_ctrl_1.InsertStringItem(0, "column 1")
-        self.list_ctrl_1.SetStringItem(index, 1, "column 2")
-
         self.__set_properties()
         self.__do_layout()
         # end wxGlade
@@ -62,8 +66,8 @@ class MyFrame(wx.Frame):
     def __set_properties(self):
         # begin wxGlade: MyFrame.__set_properties
         self.SetTitle(_("frame_1"))
-        self.SetSize((700, 487))
-        self.list_ctrl_1.SetMinSize((700, 400))
+        self.SetSize((1200, 500))
+        self.list_ctrl_1.SetMinSize((1200, 400))
 
         # end wxGlade
 
@@ -85,19 +89,167 @@ class MyFrame(wx.Frame):
 
     def Start(self, event):
         print "Hello there."
-        cap = pcapy.open_live("eth0" , 65536 , 1 , 1000000)
+        cap = pcapy.open_live("eth0" , 65536 , 1 , 100000)
 
         thread.start_new_thread(self.get_data, (cap, ))
 
     def get_data(self, cap):
-        while(self.loop) :
-            print "Looping..."
-            # (header, packet) = cap.next()
-            # #print ('%s: captured %d bytes, truncated to %d bytes' %(datetime.datetime.now(), header.getlen(), header.getcaplen()))
-            # parse_packet(packet)
+        while(self.loop):
+            if (self.count == 15):
+                self.loop = False
+                print "Stopping..."
+                break
+            # print "Looping..."
+            (header, packet) = cap.next()
+            #print ('%s: captured %d bytes, truncated to %d bytes' %(datetime.datetime.now(), header.getlen(), header.getcaplen()))
+            self.parse_info(packet)
+            self.count += 1
 
-    def parse_info(self, event):
-        event.skip()
+    def parse_info(self, packet):
+            #parse ethernet header
+        eth_length = 14
+         
+        eth_header = packet[:eth_length]
+        eth = unpack('!6s6sH' , eth_header)
+        eth_protocol = socket.ntohs(eth[2])
+        print 'Destination MAC : ' + self.eth_addr(packet[0:6]) + ' Source MAC : ' + self.eth_addr(packet[6:12]) + ' Protocol : ' + str(eth_protocol)
+     
+        #Parse IP packets, IP Protocol number = 8
+        if eth_protocol == 8 :
+            #Parse IP header
+            #take first 20 characters for the ip header
+            ip_header = packet[eth_length:20+eth_length]
+             
+            #now unpack them :)
+            iph = unpack('!BBHHHBBH4s4s' , ip_header)
+     
+            version_ihl = iph[0]
+            version = version_ihl >> 4
+            ihl = version_ihl & 0xF
+     
+            iph_length = ihl * 4
+     
+            ttl = iph[5]
+            protocol = iph[6]
+            s_addr = socket.inet_ntoa(iph[8]);
+            d_addr = socket.inet_ntoa(iph[9]);
+     
+            print 'Version : ' + str(version) + ' IP Header Length : ' + str(ihl) + ' TTL : ' + str(ttl) + ' Protocol : ' + str(protocol) + ' Source Address : ' + str(s_addr) + ' Destination Address : ' + str(d_addr)
+            
+            #TCP protocol
+            if protocol == 6 :
+                t = iph_length + eth_length
+                tcp_header = packet[t:t+20]
+     
+                #now unpack them :)
+                tcph = unpack('!HHLLBBHHH' , tcp_header)
+                 
+                source_port = tcph[0]
+                dest_port = tcph[1]
+                sequence = tcph[2]
+                acknowledgement = tcph[3]
+                doff_reserved = tcph[4]
+                tcph_length = doff_reserved >> 4
+                 
+                print 'Source Port : ' + str(source_port) + ' Dest Port : ' + str(dest_port) + ' Sequence Number : ' + str(sequence) + ' Acknowledgement : ' + str(acknowledgement) + ' TCP header length : ' + str(tcph_length)
+
+                packetData = (str(protocol), str(version), str(ihl), str(ttl), str(s_addr), str(d_addr), str(sequence), str(acknowledgement), str(tcph_length), '', '', str(source_port), str(dest_port), '', '')
+
+                self.displayData(packetData)
+
+                # thread.start_new_thread(self.displayData, (packetData, ))
+                # self.displayData(packetData)
+                
+                # h_size = eth_length + iph_length + tcph_length * 4
+                # data_size = len(packet) - h_size
+                 
+                # #get data from the packet
+                # data = packet[h_size:]
+                 
+                # print 'Data : ' + data
+     
+            #ICMP Packets
+            elif protocol == 1 :
+                u = iph_length + eth_length
+                icmph_length = 4
+                icmp_header = packet[u:u+4]
+     
+                #now unpack them :)
+                icmph = unpack('!BBH' , icmp_header)
+                 
+                icmp_type = icmph[0]
+                code = icmph[1]
+                checksum = icmph[2]
+                 
+                print 'Type : ' + str(icmp_type) + ' Code : ' + str(code) + ' Checksum : ' + str(checksum)
+
+                packetData = (str(protocol), str(version), str(ihl), str(ttl), str(s_addr), str(d_addr), '', '', '', str(icmp_type), str(code), '', '', '', str(checksum))
+
+                self.displayData(packetData)
+                 
+                # h_size = eth_length + iph_length + icmph_length
+                # data_size = len(packet) - h_size
+                 
+                # #get data from the packet
+                # data = packet[h_size:]
+                 
+                # print 'Data : ' + data
+     
+            #UDP packets
+            elif protocol == 17 :
+                u = iph_length + eth_length
+                udph_length = 8
+                udp_header = packet[u:u+8]
+     
+                #now unpack them :)
+                udph = unpack('!HHHH' , udp_header)
+                 
+                source_port = udph[0]
+                dest_port = udph[1]
+                length = udph[2]
+                checksum = udph[3]
+                 
+                print 'Source Port : ' + str(source_port) + ' Dest Port : ' + str(dest_port) + ' Length : ' + str(length) + ' Checksum : ' + str(checksum)
+
+                packetData = (str(protocol), str(version), str(ihl), str(ttl), str(s_addr), str(d_addr), '', '', '', '', '', str(source_port), str(dest_port), str(length), str(checksum))
+
+                self.displayData(packetData)
+                 
+                # h_size = eth_length + iph_length + udph_length
+                # data_size = len(packet) - h_size
+                 
+                # #get data from the packet
+                # data = packet[h_size:]
+                 
+                # print 'Data : ' + data
+     
+            #some other IP packet like IGMP
+            else :
+                print 'Protocol other than TCP/UDP/ICMP'
+                 
+            print
+
+    def eth_addr (self, a) :
+        b = "%.2x:%.2x:%.2x:%.2x:%.2x:%.2x" % (ord(a[0]) , ord(a[1]) , ord(a[2]), ord(a[3]), ord(a[4]) , ord(a[5]))
+        return b
+
+    def displayData(self, data):
+        index = self.list_ctrl_1.InsertStringItem(self.index, data[0])
+        self.list_ctrl_1.SetStringItem(index, 1, data[1])
+        self.list_ctrl_1.SetStringItem(index, 2, data[2])
+        self.list_ctrl_1.SetStringItem(index, 3, data[3])
+        self.list_ctrl_1.SetStringItem(index, 4, data[4])
+        self.list_ctrl_1.SetStringItem(index, 5, data[5])
+        self.list_ctrl_1.SetStringItem(index, 6, data[6])
+        self.list_ctrl_1.SetStringItem(index, 7, data[7])
+        self.list_ctrl_1.SetStringItem(index, 8, data[8])
+        self.list_ctrl_1.SetStringItem(index, 9, data[9])
+        self.list_ctrl_1.SetStringItem(index, 10, data[10])
+        self.list_ctrl_1.SetStringItem(index, 11, data[11])
+        self.list_ctrl_1.SetStringItem(index, 12, data[12])
+        self.list_ctrl_1.SetStringItem(index, 13, data[13])
+        self.list_ctrl_1.SetStringItem(index, 14, data[14])
+        self.index += 1
 
     def Stop(self, event):
         print "Stopping"
@@ -107,7 +259,7 @@ class MyFrame(wx.Frame):
         print "Printing"
 
     def Exit(self, event):
-        print "Exiting"
+        app.Exit()
 
 # end of class MyFrame
 if __name__ == "__main__":

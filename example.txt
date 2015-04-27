@@ -1,13 +1,33 @@
-Destination MAC : ff:ff:ff:ff:ff:ff 
-Source MAC : 08:00:27:36:06:e1 
-Protocol : 8
+Protocol : 17 
 Version : 4 
 IP Header Length : 5 
 TTL : 64 
-Protocol : 17 
 Source Address : 10.0.2.15 
 Destination Address : 255.255.255.255
 Source Port : 17500 
 Dest Port : 17500 
 Length : 185 
 Checksum : 3289
+
+Need to add:
+Seq. Num.
+Acknowledgement.
+TCP Header Len.
+Type:
+Code:
+
+'Protocol', width=100)
+'Version', width=100)
+'IP Header Length', width=150)
+'TTL', width=100)
+'Source Address', width=100)
+'Dest. Address', width=100)
+'Seq. Num.', width=100)
+'Acknowledgement', width=100)
+'TCP Header Len.', width=100)
+'Type', width=100)
+'Code', width=100)    
+'Source Port', width=100)
+'Dest. Port', width=100)
+'Length', width=100)
+'Checksum', width=100)
