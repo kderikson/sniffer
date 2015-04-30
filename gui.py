@@ -33,21 +33,21 @@ class MyFrame(wx.Frame):
         self.list_ctrl_1 = wx.ListCtrl(self, wx.ID_ANY, style=wx.LC_REPORT | wx.LC_HRULES | wx.SUNKEN_BORDER)
         # self.list_ctrl_1.InsertColumn(0,'Dest. MAC', width=100)
         # self.list_ctrl_1.InsertColumn(1,'Source. MAC', width=100)
-        self.list_ctrl_1.InsertColumn(0,'Protocol', width=100)
-        self.list_ctrl_1.InsertColumn(1,'Version', width=100)
-        self.list_ctrl_1.InsertColumn(2,'IP Header Length', width=150)
-        self.list_ctrl_1.InsertColumn(3,'TTL', width=100)
-        self.list_ctrl_1.InsertColumn(4,'Source Address', width=100)
-        self.list_ctrl_1.InsertColumn(5,'Dest. Address', width=100)
-        self.list_ctrl_1.InsertColumn(6,'Seq. Num.', width=100)
-        self.list_ctrl_1.InsertColumn(7,'Acknowledgement', width=100)
-        self.list_ctrl_1.InsertColumn(8,'TCP Header Len.', width=100)
-        self.list_ctrl_1.InsertColumn(9,'Type', width=100)
-        self.list_ctrl_1.InsertColumn(10,'Code', width=100)    
+        self.list_ctrl_1.InsertColumn(0,'Protocol', width=80)
+        self.list_ctrl_1.InsertColumn(1,'Version', width=70)
+        self.list_ctrl_1.InsertColumn(2,'IP Header Len.', width=110)
+        self.list_ctrl_1.InsertColumn(3,'TTL', width=40)
+        self.list_ctrl_1.InsertColumn(4,'Source Address', width=120)
+        self.list_ctrl_1.InsertColumn(5,'Dest. Address', width=110)
+        self.list_ctrl_1.InsertColumn(6,'Seq. Num.', width=80)
+        self.list_ctrl_1.InsertColumn(7,'Acknowledgement', width=130)
+        self.list_ctrl_1.InsertColumn(8,'TCP Header Len.', width=130)
+        self.list_ctrl_1.InsertColumn(9,'Type', width=50)
+        self.list_ctrl_1.InsertColumn(10,'Code', width=50)    
         self.list_ctrl_1.InsertColumn(11,'Source Port', width=100)
-        self.list_ctrl_1.InsertColumn(12,'Dest. Port', width=100)
-        self.list_ctrl_1.InsertColumn(13,'Length', width=100)
-        self.list_ctrl_1.InsertColumn(14,'Checksum', width=100)
+        self.list_ctrl_1.InsertColumn(12,'Dest. Port', width=90)
+        self.list_ctrl_1.InsertColumn(13,'Length', width=60)
+        self.list_ctrl_1.InsertColumn(14,'Checksum', width=80)
 
         
         self.btnStart = wx.Button(self, wx.ID_ANY, _("Start"))
@@ -66,7 +66,7 @@ class MyFrame(wx.Frame):
 
     def __set_properties(self):
         # begin wxGlade: MyFrame.__set_properties
-        self.SetTitle(_("frame_1"))
+        self.SetTitle(_("Packet Sniffer"))
         self.SetSize((1200, 500))
         self.list_ctrl_1.SetMinSize((1200, 400))
 
@@ -92,18 +92,22 @@ class MyFrame(wx.Frame):
         print "Hello there."
         cap = pcapy.open_live("eth0" , 65536 , 1 , 100000)
 
-        thread.start_new_thread(self.get_data, (cap, ))
+        self.get_data(cap)
+        # thread.start_new_thread(self.get_data, (cap, ))
 
     def get_data(self, cap):
         while(self.loop):
-            if (self.count == 15):
+            if (self.count == 30):
                 self.loop = False
                 print "Stopping..."
                 break
             # print "Looping..."
             (header, packet) = cap.next()
             #print ('%s: captured %d bytes, truncated to %d bytes' %(datetime.datetime.now(), header.getlen(), header.getcaplen()))
-            self.parse_info(packet)
+            packetData = self.parse_info(packet)
+            # thread.start_new_thread(self.displayData, (packetData, ))
+            self.displayData(packetData)
+            # time.sleep(2)
             self.count += 1
 
     def parse_info(self, packet):
@@ -156,7 +160,9 @@ class MyFrame(wx.Frame):
 
                 packetData = (str(protocol), str(version), str(ihl), str(ttl), str(s_addr), str(d_addr), str(sequence), str(acknowledgement), str(tcph_length), '', '', str(source_port), str(dest_port), '', '')
 
-                self.displayData(packetData)
+                return packetData
+                # thread.start_new_thread(self.displayData, (packetData, ))
+                # self.displayData(packetData)
 
                 # thread.start_new_thread(self.displayData, (packetData, ))
                 # self.displayData(packetData)
@@ -186,7 +192,9 @@ class MyFrame(wx.Frame):
 
                 packetData = (str(protocol), str(version), str(ihl), str(ttl), str(s_addr), str(d_addr), '', '', '', str(icmp_type), str(code), '', '', '', str(checksum))
 
-                self.displayData(packetData)
+                return packetData
+                # thread.start_new_thread(self.displayData, (packetData, ))
+                # self.displayData(packetData)
                  
                 # h_size = eth_length + iph_length + icmph_length
                 # data_size = len(packet) - h_size
@@ -214,7 +222,9 @@ class MyFrame(wx.Frame):
 
                 packetData = (str(protocol), str(version), str(ihl), str(ttl), str(s_addr), str(d_addr), '', '', '', '', '', str(source_port), str(dest_port), str(length), str(checksum))
 
-                self.displayData(packetData)
+                return packetData
+                # thread.start_new_thread(self.displayData, (packetData, ))
+                # self.displayData(packetData)
                  
                 # h_size = eth_length + iph_length + udph_length
                 # data_size = len(packet) - h_size
@@ -235,21 +245,28 @@ class MyFrame(wx.Frame):
         return b
 
     def displayData(self, data):
-        index = self.list_ctrl_1.InsertStringItem(self.index, data[0])
-        self.list_ctrl_1.SetStringItem(index, 1, data[1])
-        self.list_ctrl_1.SetStringItem(index, 2, data[2])
-        self.list_ctrl_1.SetStringItem(index, 3, data[3])
-        self.list_ctrl_1.SetStringItem(index, 4, data[4])
-        self.list_ctrl_1.SetStringItem(index, 5, data[5])
-        self.list_ctrl_1.SetStringItem(index, 6, data[6])
-        self.list_ctrl_1.SetStringItem(index, 7, data[7])
-        self.list_ctrl_1.SetStringItem(index, 8, data[8])
-        self.list_ctrl_1.SetStringItem(index, 9, data[9])
-        self.list_ctrl_1.SetStringItem(index, 10, data[10])
-        self.list_ctrl_1.SetStringItem(index, 11, data[11])
-        self.list_ctrl_1.SetStringItem(index, 12, data[12])
-        self.list_ctrl_1.SetStringItem(index, 13, data[13])
-        self.list_ctrl_1.SetStringItem(index, 14, data[14])
+    	if (data[0] == '1'):
+    		self.list_ctrl_1.InsertStringItem(self.index, 'ICMP')
+    	elif (data[0] == '6'):
+    		self.list_ctrl_1.InsertStringItem(self.index, 'TCP')
+    	elif (data[0] == '17'):
+    		self.list_ctrl_1.InsertStringItem(self.index, 'UDP')
+    	print data[0]
+        # self.list_ctrl_1.InsertStringItem(self.index, data[0])
+        self.list_ctrl_1.SetStringItem(self.index, 1, data[1])
+        self.list_ctrl_1.SetStringItem(self.index, 2, data[2])
+        self.list_ctrl_1.SetStringItem(self.index, 3, data[3])
+        self.list_ctrl_1.SetStringItem(self.index, 4, data[4])
+        self.list_ctrl_1.SetStringItem(self.index, 5, data[5])
+        self.list_ctrl_1.SetStringItem(self.index, 6, data[6])
+        self.list_ctrl_1.SetStringItem(self.index, 7, data[7])
+        self.list_ctrl_1.SetStringItem(self.index, 8, data[8])
+        self.list_ctrl_1.SetStringItem(self.index, 9, data[9])
+        self.list_ctrl_1.SetStringItem(self.index, 10, data[10])
+        self.list_ctrl_1.SetStringItem(self.index, 11, data[11])
+        self.list_ctrl_1.SetStringItem(self.index, 12, data[12])
+        self.list_ctrl_1.SetStringItem(self.index, 13, data[13])
+        self.list_ctrl_1.SetStringItem(self.index, 14, data[14])
         self.index += 1
 
     def Stop(self, event):

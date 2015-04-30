@@ -1,0 +1,15 @@
+Protocol: TCP
+Version: 4
+IP Header Length: 5
+TTL: 64
+Source Address: 10.0.2.15
+Destination Address: 72.21.211.10
+Sequence Number: 4174168729
+Acknowledge: 588864232
+TCP Header Length: 5
+Type: 
+Code: 
+Source Port: 58076
+Destination Port: 80
+Length: 
+Checksum: 
